@@ -44,17 +44,23 @@ jobs:
           script: bash scripts/capture-screenshots.sh
 
       - name: Normalize screenshots to 1080x1920
+        if: always()
         run: |
-          python3 -m pip install -q pillow
-          python3 scripts/normalize.py shots/*.png
-          python3 -c "from PIL import Image; import glob; [print(p, Image.open(p).size) for p in sorted(glob.glob('shots/*.png'))]"
+          if ls shots/*.png >/dev/null 2>&1; then
+            python3 -m pip install -q pillow
+            python3 scripts/normalize.py shots/*.png
+            python3 -c "from PIL import Image; import glob; [print(p, Image.open(p).size) for p in sorted(glob.glob('shots/*.png'))]"
+          else
+            echo "no screenshots captured"
+          fi
 
       - name: Commit screenshots to the repo
+        if: always()
         run: |
           git config user.name "Muse"
           git config user.email "muse@zaviyanllc.com"
           mkdir -p store-screenshots
-          cp shots/*.png store-screenshots/
+          if ls shots/* >/dev/null 2>&1; then cp shots/* store-screenshots/; fi
           git add store-screenshots
           git commit -m "Play listing: real emulator screenshots (1080x1920)" || echo "nothing to commit"
-          git push origin main
+          git push origin main || echo "push failed"
