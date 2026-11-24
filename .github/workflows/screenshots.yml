@@ -39,7 +39,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           force-avd-creation: true
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -skin 1080x1920
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect
           disable-animations: true
           script: bash scripts/capture-screenshots.sh
 
