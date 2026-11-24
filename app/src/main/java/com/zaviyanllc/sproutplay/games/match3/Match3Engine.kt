@@ -110,7 +110,11 @@ class Match3Board(
         for (r in 0 until rows) {
             var c = 0
             while (c < cols) {
-                val tile = grid[r][c] ?: run { c++; continue }
+                val tile = grid[r][c]
+                if (tile == null) {
+                    c++
+                    continue
+                }
                 if (tile.special == Special.BOMB) {
                     // A bomb joins whatever run touches it; handled by the run scan below.
                     c++
@@ -132,7 +136,11 @@ class Match3Board(
         for (c in 0 until cols) {
             var r = 0
             while (r < rows) {
-                val tile = grid[r][c] ?: run { r++; continue }
+                val tile = grid[r][c]
+                if (tile == null) {
+                    r++
+                    continue
+                }
                 if (tile.special == Special.BOMB) {
                     r++
                     continue
