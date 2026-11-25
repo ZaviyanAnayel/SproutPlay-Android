@@ -25,9 +25,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "9.3.1"
-          # Fresh cache namespace (KSP init failure fix): forces a clean
-          # Gradle/KSP state instead of reusing the possibly poisoned cache.
-          cache-key-prefix: "twintrap-fix-v1"
+          # Clean-cache run (KSP init failure fix): cache-key-prefix is NOT a
+          # valid setup-gradle input (annotation: "Unexpected input(s)"), so
+          # disable the Gradle cache entirely for this run.
+          cache-disabled: true
 
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
@@ -57,9 +58,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "9.3.1"
-          # Fresh cache namespace (KSP init failure fix): forces a clean
-          # Gradle/KSP state instead of reusing the possibly poisoned cache.
-          cache-key-prefix: "twintrap-fix-v1"
+          # Clean-cache run (KSP init failure fix): cache-key-prefix is NOT a
+          # valid setup-gradle input (annotation: "Unexpected input(s)"), so
+          # disable the Gradle cache entirely for this run.
+          cache-disabled: true
 
       - name: Decode release keystore
         run: echo "${{ secrets.SPROUT_KEYSTORE_BASE64 }}" | base64 -d > "$GITHUB_WORKSPACE/sproutplay-upload-key.jks"
