@@ -226,6 +226,7 @@ fun CupView(
                     if (dimmed) {
                         drawRect(color = Color.Black.copy(alpha = 0.55f))
                     }
+                }
             }
         }
     }
