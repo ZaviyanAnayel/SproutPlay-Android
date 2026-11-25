@@ -87,8 +87,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: twintrap-v1.3
-          name: Twin Trap v1.3
+          tag_name: twintrap-v1.4
+          name: Twin Trap v1.4
           files: |
             app/build/outputs/bundle/release/app-release.aab
             app/build/outputs/apk/debug/app-debug.apk

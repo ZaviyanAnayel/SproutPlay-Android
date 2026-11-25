@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zaviyanllc.sproutplay.audio.TrapAudioManager
-import com.zaviyanllc.sproutplay.domain.model.BallColor
 import com.zaviyanllc.sproutplay.domain.model.CupLayout
 import com.zaviyanllc.sproutplay.domain.model.TwinTrapLevels
 import com.zaviyanllc.sproutplay.games.cup.CupGameEngine
@@ -154,14 +153,11 @@ private fun computeLayout(
     }
 }
 
-/** Dark numbers on bright cups, white numbers on dark blue/purple cups (reference). */
-private fun numberColorFor(levelNumber: Int): Color =
-    if (levelNumber in setOf(1, 2, 4, 7, 8, 10)) Color.White else Color(0xFF0A1628)
-
 /**
- * The cup game: watch the balls (2s) → countdown 3-2-1 → shuffle with music
+ * The cup game: watch the balls (1.2s) → countdown 3-2-1 → shuffle with music
  * → tap the cup(s) hiding the ball(s) within 15s → reveal with glow ring.
- * 3 wrong picks (or timeouts) = retry the level.
+ * Cups are never numbered — the player must track the cups by eye, not by a
+ * number. 1 wrong pick on 1-ball levels, 3 on 2-ball levels = retry the level.
  */
 @Composable
 fun CupGameScreen(
@@ -408,7 +404,7 @@ private fun CupGameRound(
                 LaunchedEffect(phase) {
                     when (phase) {
                         CupPhase.SHOW -> {
-                            delay(1500)
+                            delay(1200)
                             phase = CupPhase.COUNTDOWN
                         }
                         CupPhase.COUNTDOWN -> {
@@ -493,7 +489,6 @@ private fun CupGameRound(
                     val revealed = phase == CupPhase.REVEAL || phase == CupPhase.RESULT
                     val lifted = showBall || (revealed && isBallCup)
                     val glow = if (revealed && isBallCup) ballCups[cupIndex]?.color else null
-                    val showNumber = phase == CupPhase.GUESS || phase == CupPhase.REVEAL
                     val dimmed = spec.dimmed && phase == CupPhase.SHUFFLE
                     Box(
                         modifier = Modifier
@@ -511,8 +506,6 @@ private fun CupGameRound(
                             light = spec.cupLight,
                             dark = spec.cupDark,
                             stripeColor = spec.stripeColor,
-                            number = if (showNumber) cupIndex + 1 else null,
-                            numberColor = numberColorFor(spec.number),
                             ball = if (isBallCup && ballVisibleNow) ballCups[cupIndex] else null,
                             lifted = lifted,
                             glowColor = glow,
@@ -643,13 +636,9 @@ private fun CupGameRound(
                     }
                     CupPhase.REVEAL, CupPhase.RESULT -> {
                         val revealText = if (spec.balls.size == 1) {
-                            val cup = ballCups.entries.first { it.value == spec.balls.first() }.key + 1
-                            "IT WAS CUP $cup"
+                            "IT WAS THIS CUP"
                         } else {
-                            spec.balls.joinToString(" • ") { ball ->
-                                val cup = ballCups.entries.first { it.value == ball }.key + 1
-                                "${ball.label} $cup"
-                            }
+                            "THERE THEY ARE!"
                         }
                         Text(
                             text = revealText,
@@ -746,15 +735,7 @@ private fun CupGameRound(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (maxPickStrikes == 1) {
-                                    "Wrong cup — the ball was under cup " +
-                                        "${ballCups.entries.first { it.value == spec.balls.first() }.key + 1}."
-                                } else {
-                                    "3 wrong picks — the balls were under cups " +
-                                        spec.balls.joinToString(" and ") { ball ->
-                                            "${ballCups.entries.first { it.value == ball }.key + 1}"
-                                        } + "."
-                                },
+                                text = "Wrong cup!",
                                 fontSize = 15.sp,
                                 color = TrapMuted,
                                 textAlign = TextAlign.Center,
