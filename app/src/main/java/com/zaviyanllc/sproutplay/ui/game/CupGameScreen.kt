@@ -401,13 +401,13 @@ private fun CupGameRound(
                                     launch {
                                         cupAnims[a].animateTo(
                                             topLeft(centers[slots[b]]),
-                                            tween(spec.swapIntervalMs.toInt(), LinearEasing),
+                                            tween(durationMillis = spec.swapIntervalMs.toInt(), easing = LinearEasing),
                                         )
                                     }
                                     launch {
                                         cupAnims[b].animateTo(
                                             topLeft(centers[slots[a]]),
-                                            tween(spec.swapIntervalMs.toInt(), LinearEasing),
+                                            tween(durationMillis = spec.swapIntervalMs.toInt(), easing = LinearEasing),
                                         )
                                     }
                                 }
