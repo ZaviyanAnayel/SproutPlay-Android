@@ -22,7 +22,7 @@ val NunitoFontFamily = FontFamily(
     Font(R.font.nunito, FontWeight.Bold),
 )
 
-val SproutTypography = Typography(
+val TrapTypography = Typography(
     displayLarge = TextStyle(
         fontFamily = FredokaFontFamily,
         fontWeight = FontWeight.Bold,
