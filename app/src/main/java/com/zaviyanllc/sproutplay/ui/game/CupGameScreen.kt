@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Star
@@ -202,6 +203,11 @@ private fun CupGameRound(
     var countdown by remember { mutableIntStateOf(0) }
     var remainingMs by remember { mutableLongStateOf(ANSWER_TIME_MS) }
     var strikes by remember { mutableIntStateOf(0) }
+    var wrongPicks by remember { mutableIntStateOf(0) }
+    // Wrong-pick chances: 1 on single-ball levels, 3 where two balls must
+    // be found. The 15s timer keeps its own 3-strike rule (see onTimeUp) —
+    // a timeout never spends a pick-chance.
+    val maxPickStrikes = if (spec.balls.size == 1) 1 else 3
     var foundCups by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var wrongCups by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var shakeKeys by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
@@ -248,8 +254,9 @@ private fun CupGameRound(
             audio.playWrong()
             wrongCups = wrongCups + cupIndex
             shakeKeys = shakeKeys + (cupIndex to ((shakeKeys[cupIndex] ?: 0) + 1))
+            wrongPicks++
             strikes++
-            if (strikes >= 3) failLevel()
+            if (wrongPicks >= maxPickStrikes) failLevel()
         }
     }
 
@@ -316,12 +323,22 @@ private fun CupGameRound(
                         color = Color.White,
                     )
                 }
-                Text(
-                    text = "✕".repeat(strikes) + "○".repeat((3 - strikes).coerceAtLeast(0)),
-                    fontSize = 16.sp,
-                    color = if (strikes > 0) Color(0xFFFF4D4D) else TrapMuted,
+                // Lives as small hearts: one per pick-chance (1 or 3).
+                // Filled red = chance left, grey = spent (wrong pick).
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(end = 8.dp),
-                )
+                ) {
+                    repeat(maxPickStrikes) { idx ->
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = null,
+                            tint = if (idx < maxPickStrikes - wrongPicks) Color(0xFFFF4D6D)
+                                else Color(0xFF334155),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
             }
 
             // Subtitle with the colored keyword
@@ -356,7 +373,13 @@ private fun CupGameRound(
                 val layout = remember(spec, maxW, maxH) {
                     computeLayout(spec.cupCount, spec.layout, maxW, maxH, gapPx)
                 }
-                val cupAnims = remember(spec, layout) {
+                // Keyed on (spec, maxW) — NOT on layout. The board height
+                // changes between phases, and re-creating these Animatables
+                // would teleport every cup back to its starting slot at the
+                // exact moment guessing begins — the v3 bug where a correct
+                // pick was judged wrong. (The bottom status area is also
+                // fixed-height so the layout itself stays put mid-round.)
+                val cupAnims = remember(spec, maxW) {
                     layout.slotCenters.map { center ->
                         Animatable(
                             Offset(center.x - layout.cupW / 2, center.y - layout.cupH / 2),
@@ -401,25 +424,48 @@ private fun CupGameRound(
                             audio.startMusic()
                             var slots = List(spec.cupCount) { it }
                             var angle = 0f
-                            for ((a, b) in swaps) {
+                            for ((swapIndex, swap) in swaps.withIndex()) {
+                                val (a, b) = swap
                                 audio.playWhoosh()
+                                // Acceleration ramp: each swap ~3% faster
+                                // than the previous one, so the shuffle ends
+                                // much faster than it starts (floor 80ms).
+                                val rampedMs = (spec.swapIntervalMs * Math.pow(0.97, swapIndex.toDouble()))
+                                    .toInt().coerceAtLeast(80)
                                 val targetAngle = if (spec.layout == CupLayout.CIRCLE) angle + 40f else angle
                                 val centers = centersFor(targetAngle)
+                                val slotsAfter = CupGameEngine.applySwap(slots, a to b)
                                 coroutineScope {
-                                    launch {
-                                        cupAnims[a].animateTo(
-                                            topLeft(centers[slots[b]]),
-                                            tween(durationMillis = spec.swapIntervalMs.toInt(), easing = LinearEasing),
-                                        )
-                                    }
-                                    launch {
-                                        cupAnims[b].animateTo(
-                                            topLeft(centers[slots[a]]),
-                                            tween(durationMillis = spec.swapIntervalMs.toInt(), easing = LinearEasing),
-                                        )
+                                    if (spec.layout == CupLayout.CIRCLE) {
+                                        // Orbit: rotate EVERY cup to its new
+                                        // slot at the new angle. Moving only
+                                        // the swapped pair left the other cups
+                                        // at stale angles, so cups could
+                                        // overlap and sit off their slots.
+                                        for (i in 0 until spec.cupCount) {
+                                            launch {
+                                                cupAnims[i].animateTo(
+                                                    topLeft(centers[slotsAfter[i]]),
+                                                    tween(durationMillis = rampedMs, easing = LinearEasing),
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        launch {
+                                            cupAnims[a].animateTo(
+                                                topLeft(centers[slots[b]]),
+                                                tween(durationMillis = rampedMs, easing = LinearEasing),
+                                            )
+                                        }
+                                        launch {
+                                            cupAnims[b].animateTo(
+                                                topLeft(centers[slots[a]]),
+                                                tween(durationMillis = rampedMs, easing = LinearEasing),
+                                            )
+                                        }
                                     }
                                 }
-                                slots = CupGameEngine.applySwap(slots, a to b)
+                                slots = slotsAfter
                                 angle = targetAngle
                             }
                             audio.stopMusic()
@@ -523,9 +569,15 @@ private fun CupGameRound(
             }
 
             // ---- Bottom status / prompt ----
+            // Fixed height: the GUESS status (timer bar + counter) is much
+            // taller than the other phases' single line. If this Box grew in
+            // GUESS, the board above would shrink, the layout would
+            // recompute, and the cup animations would reset to their start
+            // positions — the v3 "correct pick judged wrong" bug.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(144.dp)
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -694,10 +746,15 @@ private fun CupGameRound(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "3 wrong picks — the balls were under cups " +
-                                    spec.balls.joinToString(" and ") { ball ->
-                                        "${ballCups.entries.first { it.value == ball }.key + 1}"
-                                    } + ".",
+                                text = if (maxPickStrikes == 1) {
+                                    "Wrong cup — the ball was under cup " +
+                                        "${ballCups.entries.first { it.value == spec.balls.first() }.key + 1}."
+                                } else {
+                                    "3 wrong picks — the balls were under cups " +
+                                        spec.balls.joinToString(" and ") { ball ->
+                                            "${ballCups.entries.first { it.value == ball }.key + 1}"
+                                        } + "."
+                                },
                                 fontSize = 15.sp,
                                 color = TrapMuted,
                                 textAlign = TextAlign.Center,
