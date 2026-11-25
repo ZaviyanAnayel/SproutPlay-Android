@@ -260,8 +260,8 @@ fun GlowBall(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.size(size)) {
-        val r = size.width / 2
-        val c = Offset(size.width / 2, size.height / 2)
+        val r = size.toPx() / 2
+        val c = Offset(size.toPx() / 2, size.toPx() / 2)
         drawCircle(color = ball.color.copy(alpha = 0.20f), radius = r * 1.9f, center = c)
         drawCircle(
             brush = Brush.radialGradient(
