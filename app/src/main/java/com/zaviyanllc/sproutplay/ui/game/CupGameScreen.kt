@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -284,7 +286,12 @@ private fun CupGameRound(
                 ),
             ),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+        ) {
             // ---- Header ----
             Row(
                 modifier = Modifier
@@ -378,7 +385,7 @@ private fun CupGameRound(
                 LaunchedEffect(phase) {
                     when (phase) {
                         CupPhase.SHOW -> {
-                            delay(2000)
+                            delay(1500)
                             phase = CupPhase.COUNTDOWN
                         }
                         CupPhase.COUNTDOWN -> {
@@ -427,7 +434,12 @@ private fun CupGameRound(
                     }
                 }
 
-                // Cups (animated positions)
+                // Balls are drawn ONLY while showing or revealing them. During
+                // COUNTDOWN / SHUFFLE / GUESS the ball must be completely hidden
+                // — a ball (or its glow) peeking below a cup edge gives the game
+                // away. The reveal still lifts the correct cup(s) to show it.
+                val ballVisibleNow = phase == CupPhase.SHOW ||
+                    phase == CupPhase.REVEAL || phase == CupPhase.RESULT
                 for (cupIndex in 0 until spec.cupCount) {
                     val anim = cupAnims[cupIndex]
                     val isBallCup = ballCups.containsKey(cupIndex)
@@ -455,7 +467,7 @@ private fun CupGameRound(
                             stripeColor = spec.stripeColor,
                             number = if (showNumber) cupIndex + 1 else null,
                             numberColor = numberColorFor(spec.number),
-                            ball = if (isBallCup) ballCups[cupIndex] else null,
+                            ball = if (isBallCup && ballVisibleNow) ballCups[cupIndex] else null,
                             lifted = lifted,
                             glowColor = glow,
                             dimmed = dimmed,

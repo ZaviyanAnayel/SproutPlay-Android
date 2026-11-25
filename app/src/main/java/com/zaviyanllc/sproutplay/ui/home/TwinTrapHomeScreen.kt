@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zaviyanllc.sproutplay.audio.TrapAudioManager
 import com.zaviyanllc.sproutplay.domain.model.TwinTrapLevels
-import com.zaviyanllc.sproutplay.games.cup.GlowBall
 import com.zaviyanllc.sproutplay.ui.TrapUiState
 import com.zaviyanllc.sproutplay.ui.theme.TrapGold
 import com.zaviyanllc.sproutplay.ui.theme.TrapMuted
@@ -79,6 +80,8 @@ fun TwinTrapHomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
             // Top row: coins + sound/music toggles
@@ -130,25 +133,20 @@ fun TwinTrapHomeScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Two glowing balls flanking the title
-            Row(
+            // Title: ONE clean line. The old header flanked a 54sp title with
+            // two 52dp GlowBalls — on a phone it overflowed, wrapped to two
+            // lines and the balls clipped over the glyphs. No decoration
+            // touches the title now.
+            Text(
+                text = "TWIN TRAP",
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                letterSpacing = 2.sp,
+                maxLines = 1,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GlowBall(ball = com.zaviyanllc.sproutplay.domain.model.BallColor.GOLD, size = 52.dp)
-                Spacer(modifier = Modifier.width(18.dp))
-                Text(
-                    text = "TWIN TRAP",
-                    fontSize = 54.sp,
-                    fontWeight = FontWeight.Black,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    letterSpacing = 1.sp,
-                )
-                Spacer(modifier = Modifier.width(18.dp))
-                GlowBall(ball = com.zaviyanllc.sproutplay.domain.model.BallColor.PINK, size = 52.dp)
-            }
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
